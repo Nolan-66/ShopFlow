@@ -16,14 +16,18 @@ def appliquer_coupon(prix: float, coupon: Coupon) -> float:
     if not 0 < coupon.reduction <= 100:
         raise ValueError(f"Réduction invalide : {coupon.reduction}")
     return round(prix * (1 - coupon.reduction / 100), 2)
+
 def calculer_total(
     produits: List[Tuple[Product, int]],
     coupon: Optional[Coupon] = None
-    ) -> float:
+) -> float:
     if not produits:
-        return 0.0 # liste vide → 0
-        total_ht = sum(p.price * q for p, q in produits) # somme HT
-        total_ttc = calcul_prix_ttc(total_ht) # → TTC
+        return 0.0  # liste vide → 0
+
+    total_ht = sum(p.price * q for p, q in produits)  # somme HT
+    total_ttc = calcul_prix_ttc(total_ht)  # → TTC
+
     if coupon:
-        total_ttc = appliquer_coupon(total_ttc, coupon) # réduction
-        return total_ttc
+        total_ttc = appliquer_coupon(total_ttc, coupon)  # réduction
+
+    return total_ttc
