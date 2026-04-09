@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 logger = logging.getLogger(__name__)
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')  # bonne pratique : variable d'environnement
 
 
 def _create_redis_client():

@@ -1,5 +1,6 @@
 # app/main.py
 import logging
+import requests  # pour la démo vulnérabilité B501
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,3 +35,9 @@ def health_check():
 @app.get("/", tags=["health"])
 def root():
     return {"message": "ShopFlow API — /docs pour la documentation"}
+
+
+# Correction B501 — SSL verify=True (par défaut) + timeout
+def _exemple_appel_externe():
+    response = requests.get('https://api.externe.com', verify=True, timeout=10)
+    return response
