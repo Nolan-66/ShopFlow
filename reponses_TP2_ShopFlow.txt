@@ -1,0 +1,210 @@
+Réponses TP2 — Tests d’intégration ShopFlow
+
+==================================================
+Q1 — Configuration TestClient
+==================================================
+
+1.1 Ajout des fixtures client, api_product et api_coupon dans conftest.py
+
+Les fixtures d’intégration ont été ajoutées dans tests/conftest.py :
+- client : crée un TestClient FastAPI avec override de get_db vers une base SQLite de test.
+- api_product : crée un produit via l’API et le retourne.
+- api_coupon : crée un coupon via l’API et le retourne.
+
+La commande pytest --collect-only tests/integration/ permet de vérifier que pytest détecte bien tous les fichiers et tests du dossier tests/integration/.
+
+1.2 Pourquoi scope='module' pour la fixture client ?
+
+Le scope='module' permet de créer le TestClient une seule fois par fichier de test, au lieu de le recréer à chaque fonction de test.
+Cela accélère l’exécution, car le cycle de vie FastAPI (startup/shutdown) n’est pas relancé à chaque test.
+En contrepartie, l’isolation est un peu moins forte qu’avec scope='function', car plusieurs tests d’un même fichier partagent le même client.
+Ici, cela reste acceptable car la base de données de test reste isolée et les données sont contrôlées par les fixtures.
+
+1.3 Pourquoi faire assert response.status_code == 201 dans la fixture api_product ?
+
+L’assertion dans la fixture permet de valider immédiatement que la donnée de test a bien été créée.
+Si la création échoue, le test s’arrête directement au niveau de la fixture, ce qui évite d’exécuter un test avec un objet invalide.
+Cela rend les erreurs plus claires et garantit que tous les tests utilisant api_product partent d’un état cohérent.
+
+==================================================
+Q2 — Tests /products
+==================================================
+
+2.1 Implémentation des tests /products
+
+La suite tests/integration/test_products_api.py a été implémentée avec les classes :
+- TestListProducts
+- TestGetProduct
+- TestCreateProduct
+- TestUpdateDeleteProduct
+
+Elle couvre :
+- la liste vide au démarrage,
+- l’apparition d’un produit dans la liste,
+- le filtre par catégorie,
+- la pagination avec limit et skip,
+- la récupération d’un produit existant,
+- le cas 404 pour un produit inexistant,
+- la validation du schéma JSON,
+- la création valide,
+- les cas invalides (prix négatif, nom vide, stock négatif),
+- la valeur active=True par défaut,
+- la mise à jour du prix,
+- la mise à jour du stock,
+- la suppression logique (soft delete).
+
+La sortie pytest montre que tous les tests /products passent.
+
+2.2 Test filtre min_price / max_price
+
+Le test test_filtre_prix_min_max() vérifie que la route GET /products/?min_price=50&max_price=200
+retourne uniquement des produits dont le prix est compris entre 50 et 200 euros.
+Le test crée plusieurs produits avec des prix différents, puis vérifie :
+- que chaque résultat est dans la fourchette demandée,
+- qu’un produit dans la fourchette est bien présent,
+- et que les produits hors fourchette sont absents.
+
+==================================================
+Q3 — Tests panier et commandes
+==================================================
+
+3.1 Suite TestCart
+
+La suite tests/integration/test_cart_api.py a été implémentée entièrement.
+Elle couvre :
+- l’ajout d’un produit au panier,
+- le calcul du sous-total,
+- le refus si le stock est insuffisant,
+- l’incrémentation de quantité si le même produit est ajouté deux fois,
+- le vidage du panier.
+
+Tous les tests de cette suite passent avec pytest.
+
+3.2 Suite TestOrders
+
+La suite tests/integration/test_orders_api.py a été implémentée entièrement.
+Elle couvre :
+- la création d’une commande valide,
+- le calcul correct du total HT et du total TTC,
+- la décrémentation du stock après commande,
+- le vidage du panier après commande,
+- le refus d’une commande avec panier vide,
+- l’application d’un coupon,
+- le changement de statut,
+- une transition de statut invalide,
+- le cas d’un coupon inexistant,
+- la récupération d’une commande par son identifiant.
+
+Le test test_total_ttc_correct() passe bien avec :
+- total_ht = 200.0
+- total_ttc = 240.0
+
+3.3 Test coupon inexistant
+
+Le test test_coupon_inexistant_retourne_404() vérifie que si on essaie de créer une commande avec un coupon inexistant, l’API retourne bien le code HTTP 404.
+Ce test valide le contrat d’erreur métier côté commandes.
+
+3.4 Test récupération d’une commande par id
+
+Le test test_get_commande_par_id() crée une commande, récupère son identifiant, appelle GET /orders/{id}, puis vérifie que :
+- l’id retourné est correct,
+- le total_ttc correspond à celui de la commande créée,
+- le statut est cohérent.
+
+==================================================
+Q4 — Données de test & Faker
+==================================================
+
+4.1 Fixtures Faker
+
+Deux fixtures ont été ajoutées dans tests/conftest.py :
+- fake_product_data : génère un payload produit réaliste et aléatoire avec Faker.
+- multiple_products : crée plusieurs produits de test via l’API.
+
+Les tests de tests/integration/test_faker_products.py passent tous.
+
+4.2 Test noms trop longs
+
+Le test test_noms_longs() vérifie :
+- qu’un nom de 101 caractères retourne bien un code 422,
+- que l’erreur concerne le champ name,
+- qu’un nom de 100 caractères est accepté avec un code 201.
+
+Cela confirme que la contrainte max_length=100 est bien respectée.
+
+4.3 Rôle de Faker('fr_FR')
+
+Faker('fr_FR') génère des données réalistes localisées en français, contrairement à Faker() par défaut qui produit des données plus génériques.
+Dans le contexte de ShopFlow, cela est utile pour produire des contenus de test cohérents avec un usage français :
+- noms de produits réalistes,
+- textes en français,
+- données proches du contexte fonctionnel attendu.
+Cela améliore la lisibilité des tests et leur réalisme.
+
+==================================================
+Q5 — JUnit XML & Synthèse
+==================================================
+
+5.1 Smoke tests
+
+Le fichier tests/integration/test_health.py a été implémenté avec les tests suivants :
+- test_health_ok
+- test_root_accessible
+- test_docs_swagger_accessible
+- test_openapi_json_accessible
+
+Ces smoke tests vérifient que l’API démarre correctement et que ses endpoints fondamentaux sont accessibles.
+
+Commande utilisée :
+pytest tests/integration/ -v --junitxml=junit-integration.xml
+
+Résultat :
+Tous les tests d’intégration passent, et le fichier junit-integration.xml est bien généré.
+
+Important :
+Ici, dans ton rendu, colle aussi les 15 premières lignes du fichier XML généré.
+
+5.2 Coverage total
+
+Commande utilisée :
+pytest tests/ --cov=app --cov-report=term-missing --no-header -q
+
+Résultat observé :
+TOTAL = 84%
+
+Le seuil demandé de 80% est donc atteint.
+Le projet respecte bien l’objectif minimal de couverture demandé dans le TP.
+
+5.3 Différence entre test d’intégration et smoke test
+
+Un test d’intégration vérifie que plusieurs couches fonctionnent bien ensemble :
+route HTTP, service métier, base de données, sérialisation JSON.
+
+Un smoke test est un test très rapide qui vérifie seulement que l’application est vivante et utilisable :
+par exemple /health, /docs ou /openapi.json.
+
+Dans Jenkins, les smoke tests doivent être lancés en premier car ils permettent de détecter très vite un problème de démarrage.
+Si les smoke tests échouent, il est inutile d’exécuter toute la suite.
+Les tests d’intégration viennent ensuite, car ils sont plus complets et plus coûteux.
+
+==================================================
+Synthèse finale
+==================================================
+
+Le TP2 a été complété avec succès.
+
+Éléments réalisés :
+- ajout des fixtures d’intégration dans conftest.py,
+- création complète du dossier tests/integration/,
+- implémentation des tests produits, panier, commandes, faker et health,
+- génération du rapport JUnit XML,
+- exécution de la suite complète,
+- couverture de code finale à 84%.
+
+Résultat final :
+- 43 tests d’intégration passés,
+- coverage total : 84%,
+- livrables conformes aux attentes du TP2.
+
+
+sonar qube : jenkins-token sqa_bce1d5776a2b7c53298d1dce03afebdc6dc1a2e4

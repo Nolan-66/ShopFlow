@@ -1,0 +1,111 @@
+==============================
+TP1 - Tests unitaires ShopFlow
+==============================
+
+------------------------------
+Q1.1 - Résultat de pytest --collect-only
+------------------------------
+
+La commande pytest --collect-only s’exécute correctement et permet de vérifier que pytest détecte les tests sans les exécuter.
+
+Dans mon cas, une fois les fichiers de tests créés, pytest indique que 38 tests sont collectés. Cela signifie que la structure du projet est correcte, que pytest.ini est bien configuré et que les fichiers respectent les conventions de nommage (test_*.py).
+
+------------------------------
+Q1.2 - Différence entre scope="function" et scope="module"
+------------------------------
+
+Le scope="function" signifie que la fixture est recréée pour chaque test. Cela garantit un isolement total entre les tests, car chaque test utilise une base de données et une session propres.
+
+Le scope="module" signifie que la fixture est créée une seule fois pour tout le fichier de test. Tous les tests du module partagent alors la même ressource.
+
+Dans ce TP, le scope="function" est utilisé pour éviter les effets de bord entre les tests et garantir leur indépendance.
+
+------------------------------
+Q1.3 - Rôle de session.rollback()
+------------------------------
+
+La méthode session.rollback() permet d’annuler toutes les modifications effectuées pendant un test.
+
+Elle garantit que les données créées ou modifiées lors d’un test ne persistent pas pour les tests suivants. Cela permet d’éviter les interférences entre tests et assure des résultats fiables et reproductibles.
+
+------------------------------
+Q1.4 - Contenu du fichier .coveragerc
+------------------------------
+
+Le fichier .coveragerc permet de configurer Coverage.py.
+
+Exemple utilisé :
+
+[run]
+source = app
+omit = */migrations/*, */__init__.py, */conftest.py
+
+[report]
+fail_under = 80
+show_missing = true
+
+[html]
+directory = htmlcov
+title = ShopFlow — Coverage Report
+
+Ce fichier permet de :
+- limiter l’analyse au dossier app
+- exclure certains fichiers non pertinents
+- afficher les lignes non couvertes
+- fixer un seuil minimal de couverture
+
+------------------------------
+Q2 - Analyse des lignes non couvertes
+------------------------------
+
+Après exécution des tests avec coverage, la couverture de la couche services est supérieure à 95%.
+
+Il ne reste que deux lignes non couvertes dans les services :
+
+- Dans app/services/order.py :
+  raise ValueError(f"Stock insuffisant pour '{item.product.name}'")
+
+- Dans app/services/stock.py :
+  raise ValueError(f"Quantité invalide : {quantite}")
+
+Ces lignes correspondent à des cas d’erreur spécifiques qui ne sont pas déclenchés dans les scénarios de tests actuels.
+
+Tous les autres chemins de code de la logique métier (pricing, cart, order, stock) sont couverts par les tests unitaires.
+
+Cela montre que la couverture des cas principaux et des cas limites est très élevée, et que seuls certains cas d’erreur extrêmes restent non testés.
+
+------------------------------
+Q3 - Mocking Redis
+------------------------------
+
+Le mocking permet de simuler un comportement sans dépendre d’un service externe réel.
+
+Dans ce TP, Redis est mocké avec pytest-mock afin de tester les fonctions de gestion du stock sans nécessiter un serveur Redis.
+
+Cela permet de :
+- tester le code indépendamment de Redis
+- vérifier que certaines fonctions (delete, set) sont appelées
+- éviter les dépendances externes
+
+------------------------------
+Q4 - Coverage
+------------------------------
+
+La couverture globale du projet est de 42%.
+
+Cependant, la couverture de la couche services (app/services) est supérieure à 95% :
+
+- cart.py : 100%
+- pricing.py : 100%
+- stock.py : 96%
+- order.py : 97%
+
+Les fichiers non couverts concernent principalement :
+- les routes FastAPI
+- les schémas Pydantic
+- le point d’entrée de l’application
+
+Ces parties ne sont pas ciblées par les tests unitaires du TP.
+
+Conclusion :
+L’objectif de couverture (>80% sur la logique métier) est atteint.
