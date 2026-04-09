@@ -1,0 +1,83 @@
+==============================
+TP3 - CI/CD avec Jenkins & SonarQube
+Projet : ShopFlow API
+Auteur : Nolan Conte
+==============================
+
+1. Mise en place de l’environnement CI
+
+1.1 Docker Compose
+Un fichier docker-compose.ci.yml a été créé pour déployer :
+- Jenkins (jenkins/jenkins:lts-jdk17)
+- SonarQube (sonarqube:community)
+
+Les deux services sont accessibles :
+- Jenkins : http://localhost:8080
+- SonarQube : http://localhost:9000
+
+Les conteneurs sont bien démarrés avec :
+docker compose -f docker-compose.ci.yml up -d
+
+1.2 Configuration Jenkins
+- Création d’un utilisateur admin
+- Installation des plugins :
+  - Pipeline
+  - Git
+  - Docker Pipeline
+  - SonarQube Scanner
+  - JUnit
+  - HTML Publisher
+
+Connexion à SonarQube :
+- Création d’un token dans SonarQube
+- Ajout dans Jenkins (Credentials)
+- Configuration dans “Configurer le système”
+- URL utilisée : http://sonarqube:9000
+
+1.3 Configuration SonarQube
+Création du fichier sonar-project.properties avec :
+- sources : app/
+- tests : tests/
+- coverage : coverage.xml
+- rapports : junit + pylint
+
+2. Mise en place du pipeline Jenkins
+
+2.1 Création du Jenkinsfile
+Un pipeline declarative a été mis en place avec les étapes :
+- Checkout
+- Installation des dépendances
+- Exécution des tests
+- Analyse SonarQube
+- Publication des résultats
+
+2.2 Exécution des tests
+Les tests sont lancés avec pytest :
+- Génération du rapport JUnit : junit-report.xml
+- Génération du coverage : coverage.xml
+
+2.3 Analyse SonarQube
+- L’analyse est lancée via le scanner SonarQube
+- Le Quality Gate est activé
+- Les résultats sont visibles sur l’interface SonarQube
+
+2.4 Résultats
+- Tous les tests passent
+- Coverage : ~84%
+- Analyse SonarQube fonctionnelle
+
+3. Difficultés rencontrées
+
+- Problème de Jenkinsfile non détecté (oubli de push Git)
+- Gestion des chemins Linux dans Jenkins (venv/bin/activate)
+- Configuration réseau Docker (utilisation de sonarqube au lieu de localhost)
+- Warnings pytest (marks non enregistrés)
+
+4. Conclusion
+
+Le pipeline CI/CD est fonctionnel :
+- Automatisation des tests
+- Analyse de qualité avec SonarQube
+- Intégration continue opérationnelle
+
+Le projet est structuré et prêt pour des améliorations futures (Docker build, déploiement, etc.)
